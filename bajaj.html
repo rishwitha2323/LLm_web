@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Insurance Query System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .document-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #fcd34d;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #fffbeb;
+        }
+        .result-card {
+            transition: all 0.2s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .file-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+        }
+        .glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 5px #00eeff; }
+            to { box-shadow: 0 0 20px #00eeff, 0 0 30px #008cff; }
+        }
+        .document-preview::-webkit-scrollbar {
+            width: 8px;
+        }
+        .document-preview::-webkit-scrollbar-track {
+            background: #fffbeb;
+        }
+        .document-preview::-webkit-scrollbar-thumb {
+            background: #fcd34d;
+            border-radius: 4px;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .medical-highlight {
+            background-color: rgba(56, 178, 172, 0.2);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-black text-white">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col items-center mb-12">
+            <div class="w-24 h-24 mb-4 rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg glow">
+                <i class="fas fa-file-medical text-white text-4xl"></i>
+            </div>
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">Medical Insurance Query System</h1>
+            <p class="text-cyan-300 max-w-2xl text-center">Specialized in knee surgery coverage analysis for insurance policies</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Document Upload Section -->
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl shadow-lg border border-cyan-800/50">
+                <h2 class="text-xl font-semibold text-cyan-300 mb-4"><i class="fas fa-file-upload mr-2"></i>1. Upload Insurance Policy</h2>
+                <div class="space-y-4">
+                    <div class="border-2 border-dashed border-cyan-500/30 rounded-lg p-6 text-center cursor-pointer hover:bg-cyan-900/10 transition duration-300" id="dropZone">
+                        <input type="file" id="documentUpload" multiple accept=".pdf,.docx,.txt" class="hidden" onchange="handleFileUpload(event)">
+                        <label for="documentUpload" class="cursor-pointer">
+                            <div class="mx-auto mb-3 w-14 h-14 rounded-full bg-cyan-900/30 flex items-center justify-center">
+                                <i class="fas fa-cloud-upload-alt text-cyan-400 text-2xl"></i>
+                            </div>
+                            <p class="mt-1 text-sm text-cyan-300">Drag and drop or <span class="text-cyan-400 font-medium">browse files</span></p>
+                            <p class="text-xs text-cyan-200 mt-1">PDF, DOCX, TXT files up to 10MB</p>
+                        </label>
+                    </div>
+                    <div id="uploadedFiles" class="mt-6">
+                        <h3 class="text-sm font-medium text-cyan-300 mb-3 flex items-center">
+                            <i class="fas fa-folder-open mr-2"></i>Uploaded Documents:
+                        </h3>
+                        <div id="fileList" class="space-y-3">
+                            <div class="p-4 rounded-lg bg-gradient-to-br from-cyan-900/30 to-blue-900/30 border border-cyan-700/30">
+                                <p class="text-cyan-200 italic">No documents uploaded yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Section -->
+            <div class="bg-gradient-to-br from-amber-100 to-amber-50 p-6 rounded-xl shadow-lg border border-amber-300">
+                <h2 class="text-xl font-semibold text-amber-800 mb-4"><i class="fas fa-search mr-2"></i>2. Enter Medical Query</h2>
+                <div class="space-y-4">
+                    <div class="relative">
+                        <textarea id="userQuery" rows="5" class="w-full px-4 py-3 bg-amber-50 text-gray-800 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition duration-200" placeholder="e.g. 'What knee surgeries are covered under this policy?'"></textarea>
+                        <div class="absolute bottom-3 right-3 text-gray-400">
+                            <i class="fas fa-comment-medical"></i>
+                        </div>
+                    </div>
+                    <button id="processQuery" class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 px-4 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 pulse">
+                        <i class="fas fa-bolt mr-2"></i>
+                        <span>Analyze Coverage</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Document Preview Section -->
+            <div class="bg-gradient-to-br from-amber-100 to-amber-50 p-6 rounded-xl shadow-lg border border-amber-300">
+                <h2 class="text-xl font-semibold text-amber-800 mb-4"><i class="fas fa-file-medical mr-2"></i>3. Policy Preview</h2>
+                <div class="document-preview" id="documentPreview">
+                    <p class="text-amber-600 italic">No document selected. Upload a policy to preview its contents.</p>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Document:</label>
+                    <div class="relative">
+                        <select id="documentSelector" class="w-full rounded-md border-amber-300 bg-amber-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2 pl-3 pr-8" disabled>
+                            <option value="">-- Select a document --</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden mt-12 bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-xl shadow-lg border border-cyan-800/50">
+            <h2 class="text-2xl font-bold text-cyan-400 mb-6"><i class="fas fa-stethoscope mr-2"></i>Insurance Coverage Analysis</h2>
+            <div class="space-y-8">
+                <div class="space-y-5">
+                    <div>
+                        <h3 class="text-lg font-medium text-cyan-300 mb-2">Your Medical Query:</h3>
+                        <p id="displayedQuery" class="text-cyan-200 text-lg bg-gray-800/50 rounded-lg p-4"></p>
+                    </div>
+                    <div class="border-t border-cyan-800/50 pt-5">
+                        <h3 class="text-lg font-medium text-cyan-300 mb-2">Coverage Analysis:</h3>
+                        <div id="answerContent" class="text-gray-200 bg-gray-800/50 rounded-lg p-4 text-lg"></div>
+                    </div>
+                </div>
+
+                <div class="border-t border-cyan-800/50 pt-6">
+                    <h3 class="text-lg font-medium text-cyan-300 mb-4">Relevant Policy Clauses:</h3>
+                    <div id="clausesContainer" class="grid grid-cols-1 gap-5">
+                        <!-- Clauses will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div id="systemStatus" class="mt-8 p-4 rounded-lg hidden bg-gradient-to-r from-blue-900/80 to-cyan-900/80 border border-cyan-700/50">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-circle-notch text-cyan-400 text-xl loading-spinner"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-cyan-200">
+                        <span id="statusText">Processing your request...</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Documents -->
+        <div class="mt-12 bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl shadow-lg border border-cyan-800/50">
+            <h2 class="text-xl font-semibold text-cyan-300 mb-4"><i class="fas fa-lightbulb mr-2"></i>Try Sample Insurance Policy</h2>
+            <p class="text-cyan-200 mb-4">Test the system with this pre-loaded medical insurance policy:</p>
+            <div class="grid grid-cols-1 gap-4">
+                <div class="file-card p-4 rounded-lg border border-cyan-700/30 cursor-pointer hover:border-cyan-500 transition duration-300" onclick="loadSampleDocument('insurance')">
+                    <div class="flex items-center">
+                        <i class="fas fa-file-medical text-cyan-400 text-2xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-cyan-200">HealthPlus Medical Policy</h3>
+                            <p class="text-xs text-cyan-400">orthopedic-coverage.pdf</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced medical insurance policy data
+        const sampleDocuments = {
+            insurance: {
+                name: "HealthPlus Orthopedic Coverage Policy",
+                content: `HEALTHPLUS MEDICAL INSURANCE POLICY
+
+Policy Number: HP-ORTHO-2023-98765
+Effective Date: January 1, 2023
+Expiration Date: December 31, 2023
+
+SECTION 4: ORTHOPEDIC SURGERY COVERAGE
+
+4.1 Covered Knee Procedures:
+- Total knee arthroplasty (replacement)
+- Partial knee replacement
+- Knee arthroscopy (diagnostic and therapeutic)
+- ACL reconstruction
+- Meniscus repair/meniscectomy
+- Patellar realignment
+- Knee osteotomy
+
+4.2 Coverage Details:
+- Inpatient procedures: 90% coverage after deductible
+- Outpatient procedures: 85% coverage after deductible
+- Physical therapy: 30 sessions per calendar year
+- Durable medical equipment: Up to $1,000 annually
+- Custom braces: Up to $500 every 2 years
+
+4.3 Authorization Requirements:
+- Elective procedures require prior authorization (14 days)
+- Second opinion required for patients under 40
+- Facility must be in-network (except emergencies)
+- FDA-approved implants only
+
+SECTION 7: LIMITATIONS AND EXCLUSIONS
+
+7.1 General Exclusions:
+- Experimental or investigational procedures
+- Cosmetic orthopedic surgery
+- Non-FDA approved devices
+- Injuries from extreme sports/activities
+
+7.2 Knee-Specific Exclusions:
+- Stem cell injections for cartilage regeneration
+- Custom implants without prior review
+- Revision surgery within 5 years (unless medically necessary)
+- Bilateral procedures without justification
+- Weight loss surgery as prerequisite for knee replacement
+
+SECTION 9: POST-OPERATIVE CARE
+
+9.1 Rehabilitation Coverage:
+- 30 physical therapy sessions (max $150/session)
+- 6 weeks of home health services (if prescribed)
+- Pain management (limited to 3 months post-op)
+- Durable medical equipment rental
+
+9.2 Follow-up Requirements:
+- Post-op visit within 14 days
+- 6-week progress evaluation
+- Annual implant surveillance x-rays`,
+                query: "",
+                answer: "",
+                clauses: []
+            }
+        };
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup drop zone functionality
+            const dropZone = document.getElementById('dropZone');
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('bg-cyan-900/20', 'border-cyan-400');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('bg-cyan-900/20', 'border-cyan-400');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('bg-cyan-900/20', 'border-cyan-400');
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            });
+            
+            // Setup process query button
+            document.getElementById('processQuery').addEventListener('click', processQuery);
+            
+            // Setup document selector change
+            document.getElementById('documentSelector').addEventListener('change', function() {
+                updateDocumentPreview(this.value);
+            });
+        });
+
+        // Handle file selection
+        function handleFileUpload(event) {
+            handleFiles(event.target.files);
+        }
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileCard = document.createElement('div');
+                fileCard.className = 'p-3 rounded-lg bg-gradient-to-br from-cyan-900/30 to-blue-900/30 border border-cyan-700/30 flex items-center justify-between';
+                fileCard.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-file-pdf text-red-400 mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-cyan-200 truncate max-w-xs">${file.name}</h3>
+                            <p class="text-xs text-cyan-400">${formatFileSize(file.size)}</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-check-circle text-emerald-400"></i>
+                `;
+                fileList.appendChild(fileCard);
+                
+                // Add to document selector
+                const selector = document.getElementById('documentSelector');
+                const option = document.createElement('option');
+                option.value = file.name;
+                option.textContent = file.name;
+                selector.appendChild(option);
+                selector.disabled = false;
+            }
+            
+            // Show success message
+            showStatus(`Uploaded ${files.length} document(s) successfully!`, 'success');
+            
+            // Auto-select the first document
+            document.getElementById('documentSelector').value = files[0].name;
+            updateDocumentPreview(files[0].name);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function updateDocumentPreview(fileName) {
+            const preview = document.getElementById('documentPreview');
+            preview.innerHTML = `<p class="text-amber-800">Preview for: <span class="font-semibold">${fileName}</span></p>
+            <p class="text-amber-600 mt-4">Document preview is simulated in this demo. In a real system, the document content would be displayed here.</p>`;
+        }
+
+        // Enhanced medical query processing
+        function processQuery() {
+            const query = document.getElementById('userQuery').value.trim().toLowerCase();
+            if (!query) {
+                showStatus('Please enter a medical query first', 'error');
+                return;
+            }
+            
+            const selectedDoc = document.getElementById('documentSelector').value;
+            if (!selectedDoc) {
+                showStatus('Please upload and select an insurance policy first', 'error');
+                return;
+            }
+            
+            // Show processing status
+            showStatus('Analyzing policy for knee surgery coverage...', 'processing');
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                // Hide status
+                document.getElementById('systemStatus').classList.add('hidden');
+                
+                // Generate medical response
+                generateMedicalResponse(query);
+            }, 2500);
+        }
+
+        // Detect if query is knee surgery related
+        function isKneeSurgeryQuery(query) {
+            const medicalKeywords = [
+                'knee', 'arthroplasty', 'replacement', 'arthroscopy', 
+                'acl', 'meniscus', 'orthopedic', 'coverage', 'physical therapy',
+                'procedure', 'implant', 'surgery', 'rehab', 'rehabilitation',
+                'pre-auth', 'authorization', 'limitation', 'exclusion'
+            ];
+            return medicalKeywords.some(keyword => query.includes(keyword));
+        }
+
+        // Generate specific responses for knee surgery queries
+        function generateMedicalResponse(query) {
+            const doc = sampleDocuments.insurance;
+            let answer = "";
+            let relevantClauses = [];
+            
+            // Custom responses based on query type
+            if (query.includes('cover') || query.includes('coverage')) {
+                answer = `<p>The <span class="medical-highlight">HealthPlus Orthopedic Policy</span> provides comprehensive coverage for knee surgeries including:</p>
+                <ul class="list-disc pl-5 mt-2">
+                    <li>Total knee replacement (90% coverage after deductible)</li>
+                    <li>Partial knee replacement (85% coverage)</li>
+                    <li>Arthroscopic procedures (80% coverage)</li>
+                    <li>ACL reconstruction</li>
+                    <li>Meniscus repair</li>
+                </ul>
+                <p class="mt-3">Coverage includes <span class="medical-highlight">30 physical therapy sessions</span> per year and up to <span class="medical-highlight">$1,000 for durable medical equipment</span> annually.</p>`;
+                
+                relevantClauses = [
+                    {
+                        title: "Covered Knee Procedures",
+                        content: "Total knee arthroplasty (replacement), Partial knee replacement, Knee arthroscopy (diagnostic and therapeutic), ACL reconstruction, Meniscus repair/meniscectomy, Patellar realignment, Knee osteotomy",
+                        relevance: "98% match",
+                        page: "Section 4.1"
+                    },
+                    {
+                        title: "Coverage Details",
+                        content: "Inpatient procedures: 90% coverage after deductible, Outpatient procedures: 85% coverage after deductible, Physical therapy: 30 sessions per calendar year, Durable medical equipment: Up to $1,000 annually",
+                        relevance: "96% match",
+                        page: "Section 4.2"
+                    }
+                ];
+            } 
+            else if (query.includes('limit') || query.includes('exclu')) {
+                answer = `<p>The policy has these <span class="medical-highlight">limitations for knee surgeries</span>:</p>
+                <ul class="list-disc pl-5 mt-2">
+                    <li>Stem cell injections are <span class="medical-highlight">not covered</span></li>
+                    <li>Custom implants require prior authorization</li>
+                    <li>Revision surgeries within 5 years excluded (unless medically necessary)</li>
+                    <li>Bilateral procedures need justification</li>
+                    <li>Non-FDA approved implants excluded</li>
+                </ul>
+                <p class="mt-3"><span class="medical-highlight">Physical therapy</span> is limited to 30 sessions annually, and <span class="medical-highlight">custom braces</span> have a $500 limit every 2 years.</p>`;
+                
+                relevantClauses = [
+                    {
+                        title: "Knee-Specific Exclusions",
+                        content: "Stem cell injections for cartilage regeneration, Custom implants without prior review, Revision surgery within 5 years (unless medically necessary), Bilateral procedures without justification",
+                        relevance: "97% match",
+                        page: "Section 7.2"
+                    },
+                    {
+                        title: "Coverage Limits",
+                        content: "Physical therapy: 30 sessions per calendar year, Durable medical equipment: Up to $1,000 annually, Custom braces: Up to $500 every 2 years",
+                        relevance: "95% match",
+                        page: "Section 4.2"
+                    }
+                ];
+            }
+            else if (query.includes('physical therapy') || query.includes('rehab')) {
+                answer = `<p><span class="medical-highlight">Rehabilitation coverage</span> for knee surgeries includes:</p>
+                <ul class="list-disc pl-5 mt-2">
+                    <li>30 physical therapy sessions per year (max $150/session)</li>
+                    <li>6 weeks of home health services (if prescribed)</li>
+                    <li>Pain management coverage (3 months post-op)</li>
+                    <li>Durable medical equipment rental</li>
+                </ul>
+                <p class="mt-3">Additional sessions may be approved with <span class="medical-highlight">documented medical necessity</span>.</p>`;
+                
+                relevantClauses = [
+                    {
+                        title: "Rehabilitation Coverage",
+                        content: "30 physical therapy sessions (max $150/session), 6 weeks of home health services (if prescribed), Pain management (limited to 3 months post-op), Durable medical equipment rental",
+                        relevance: "99% match",
+                        page: "Section 9.1"
+                    }
+                ];
+            }
+            else if (query.includes('cost') || query.includes('price') || query.includes('fee')) {
+                answer = `<p>The <span class="medical-highlight">cost coverage</span> for knee surgeries under this policy:</p>
+                <ul class="list-disc pl-5 mt-2">
+                    <li>Inpatient procedures (like total knee replacement): <span class="medical-highlight">90% coverage</span> after deductible</li>
+                    <li>Outpatient procedures (like arthroscopy): <span class="medical-highlight">85% coverage</span> after deductible</li>
+                    <li>Typical patient responsibility: $1,000-$3,000 depending on procedure</li>
+                    <li>Pre-authorization required for cost estimation</li>
+                </ul>`;
+                
+                relevantClauses = [
+                    {
+                        title: "Coverage Details",
+                        content: "Inpatient procedures: 90% coverage after deductible, Outpatient procedures: 85% coverage after deductible",
+                        relevance: "98% match",
+                        page: "Section 4.2"
+                    },
+                    {
+                        title: "Authorization Requirements",
+                        content: "Elective procedures require prior authorization (14 days), Second opinion required for patients under 40, Facility must be in-network (except emergencies)",
+                        relevance: "92% match",
+                        page: "Section 4.3"
+                    }
+                ];
+            }
+            else {
+                // Default medical response
+                answer = `<p>The <span class="medical-highlight">HealthPlus Orthopedic Policy</span> provides coverage for various knee surgeries including replacements, arthroscopic procedures, and reconstructive surgeries.</p>
+                <p class="mt-2">Coverage is subject to <span class="medical-highlight">medical necessity</span>, <span class="medical-highlight">pre-authorization</span> requirements, and <span class="medical-highlight">in-network facility</span> use. Specific benefits vary by procedure type.</p>
+                <p class="mt-2">Please ask about specific aspects like:
+                <span class="medical-highlight">coverage details</span>, 
+                <span class="medical-highlight">limitations</span>, 
+                <span class="medical-highlight">rehabilitation</span>, or 
+                <span class="medical-highlight">costs</span> for more precise information.</p>`;
+                
+                relevantClauses = [
+                    {
+                        title: "Covered Knee Procedures",
+                        content: "Total knee arthroplasty (replacement), Partial knee replacement, Knee arthroscopy (diagnostic and therapeutic), ACL reconstruction, Meniscus repair/meniscectomy",
+                        relevance: "96% match",
+                        page: "Section 4.1"
+                    },
+                    {
+                        title: "Authorization Requirements",
+                        content: "Elective procedures require prior authorization (14 days), Second opinion required for patients under 40, Facility must be in-network (except emergencies), FDA-approved implants only",
+                        relevance: "94% match",
+                        page: "Section 4.3"
+                    }
+                ];
+            }
+            
+            // Update the document with generated response
+            doc.query = query;
+            doc.answer = answer;
+            doc.clauses = relevantClauses;
+            displayResults(doc);
+        }
+
+        function loadSampleDocument(type) {
+            const doc = sampleDocuments[type];
+            
+            // Clear file list
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            // Add sample document
+            const fileCard = document.createElement('div');
+            fileCard.className = 'p-3 rounded-lg bg-gradient-to-br from-cyan-900/30 to-blue-900/30 border border-cyan-700/30 flex items-center justify-between';
+            fileCard.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-file-pdf text-red-400 mr-3"></i>
+                    <div>
+                        <h3 class="font-medium text-cyan-200">${doc.name}</h3>
+                        <p class="text-xs text-cyan-400">Sample document</p>
+                    </div>
+                </div>
+                <i class="fas fa-check-circle text-emerald-400"></i>
+            `;
+            fileList.appendChild(fileCard);
+            
+            // Update document selector
+            const selector = document.getElementById('documentSelector');
+            selector.innerHTML = '<option value="">-- Select a document --</option>';
+            const option = document.createElement('option');
+            option.value = doc.name;
+            option.textContent = doc.name;
+            selector.appendChild(option);
+            selector.disabled = false;
+            selector.value = doc.name;
+            
+            // Update document preview
+            const preview = document.getElementById('documentPreview');
+            preview.innerHTML = `<p class="text-amber-800 font-semibold mb-2">${doc.name}</p>
+            <div class="text-amber-700">${doc.content}</div>`;
+            
+            showStatus(`Loaded sample ${type} document`, 'success');
+        }
+
+        function displayResults(doc) {
+            // Show results section
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.classList.remove('hidden');
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+            
+            // Set query text
+            document.getElementById('displayedQuery').textContent = doc.query;
+            
+            // Set answer text
+            const answerContent = document.getElementById('answerContent');
+            answerContent.innerHTML = doc.answer;
+            
+            // Add clauses
+            const clausesContainer = document.getElementById('clausesContainer');
+            clausesContainer.innerHTML = '';
+            
+            doc.clauses.forEach(clause => {
+                const clauseCard = document.createElement('div');
+                clauseCard.className = 'result-card bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg border border-cyan-800/50 p-5';
+                clauseCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-semibold text-cyan-300">${clause.title}</h4>
+                        <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold px-2 py-1 rounded">${clause.relevance}</span>
+                    </div>
+                    <p class="text-cyan-200 text-sm mb-3">${clause.content}</p>
+                    <div class="text-xs text-cyan-400 flex items-center">
+                        <i class="fas fa-file-alt mr-1"></i> ${clause.page}
+                    </div>
+                `;
+                clausesContainer.appendChild(clauseCard);
+            });
+        }
+
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('systemStatus');
+            const statusText = document.getElementById('statusText');
+            
+            statusText.textContent = message;
+            statusElement.classList.remove('hidden');
+            
+            if (type === 'success') {
+                statusElement.classList.remove('bg-gradient-to-r', 'from-blue-900/80', 'to-cyan-900/80');
+                statusElement.classList.add('bg-gradient-to-r', 'from-emerald-900/80', 'to-green-900/80');
+                setTimeout(() => statusElement.classList.add('hidden'), 3000);
+            } 
+            else if (type === 'error') {
+                statusElement.classList.remove('bg-gradient-to-r', 'from-blue-900/80', 'to-cyan-900/80');
+                statusElement.classList.add('bg-gradient-to-r', 'from-rose-900/80', 'to-red-900/80');
+                setTimeout(() => statusElement.classList.add('hidden'), 3000);
+            }
+            else {
+                statusElement.classList.add('bg-gradient-to-r', 'from-blue-900/80', 'to-cyan-900/80');
+            }
+        }
+    </script>
+</body>
+</html>
